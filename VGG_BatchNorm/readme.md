@@ -1,3 +1,5 @@
+# 可视化 BatchNorm 对 VGG_A 模型 loss landscape 的影响
+
 ### 文件说明
 - `data/`: 加载数据。<br>
 - `utils/`: 目前负责初始化模型权重。<br>
