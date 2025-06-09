@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import os
+import numpy as np
 
 module_path = os.path.dirname(os.path.abspath(__file__))
 home_path = module_path
@@ -33,20 +34,39 @@ def extract_min_max(data):  # data 是二维嵌套列表，一行对应一个模
     ## --------------------
 
 
+# LLM: 使用卷积运算计算滑动平均
+def numpy_sma(data, window_size=100):
+    weights = np.ones(window_size) / window_size
+    return np.convolve(data, weights, mode='same').tolist()
+
+
 # Use this function to plot the final loss landscape,
 # fill the area between the two curves can use plt.fill_between()
-def plot_loss_landscape(
-        file1=os.path.join(home_path, 'reports/texts/loss_BN.txt'), 
-        file2=os.path.join(home_path, 'reports/texts/loss_VGG.txt'),
-        label1='Standard VGG + BatchNorm', label2='Standard VGG'):
+def plot_loss_landscape(mode='loss', sma_window_size=100):
     ## --------------------
     # Add your code
+
+    if mode == 'loss':
+        file1=os.path.join(home_path, 'reports/texts/loss_BN.txt')
+        file2=os.path.join(home_path, 'reports/texts/loss_VGG.txt')
+        outfile = 'loss_landscape'
+    elif mode == 'grads':
+        file1=os.path.join(home_path, 'reports/texts/grads_BN.txt')
+        file2=os.path.join(home_path, 'reports/texts/grads_VGG.txt')
+        outfile = 'grads_variation'
+    
+    label1='Standard VGG + BatchNorm'
+    label2='Standard VGG'
 
     # 两个模型每个 steo 的最大和最小损失
     data1 = read_txt(file1)
     min1, max1 = extract_min_max(data1)
+    min1 = numpy_sma(min1, window_size=sma_window_size) # 平滑
+    max1 = numpy_sma(max1, window_size=sma_window_size)
     data2 = read_txt(file2)
     min2, max2 = extract_min_max(data2)
+    min2 = numpy_sma(min2, window_size=sma_window_size) # 平滑
+    max2 = numpy_sma(max2, window_size=sma_window_size)
 
     plt.figure(figsize=(10, 4))
     steps = range(len(min1))
@@ -61,18 +81,27 @@ def plot_loss_landscape(
     plt.fill_between(steps, min2, max2, color='blue', alpha=0.2, label=label2)
     
     # 设置图表标题和标签
-    plt.title('Loss Landscape')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.ylim(0, 2.5)
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+    if mode == 'loss':
+        plt.title('Loss Landscape')
+        plt.xlabel('Step')
+        plt.ylabel('Loss')
+        plt.ylim(0, 2.5)
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+    elif mode == 'grads':
+        plt.title('Gradient Variation')
+        plt.xlabel('Step')
+        plt.ylabel('Grads')
+        plt.ylim(0, 1.2)
+        plt.legend()
+        plt.grid(True, alpha=0.3)
     
     # 输出图表
     plt.tight_layout()
-    plt.savefig(os.path.join(figures_path, f'loss_landscape.png'))
+    plt.savefig(os.path.join(figures_path, f'{outfile}.png'))
     plt.close()
     ## --------------------
 
 
-plot_loss_landscape()
+plot_loss_landscape(mode='loss', sma_window_size=100)
+plot_loss_landscape(mode='grads', sma_window_size=100)
